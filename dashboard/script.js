@@ -3,6 +3,24 @@
   //window.location.reload(); // will be handled by index.html script
 //}
 // ────────────────────────────────────────────────────────────────────────
+// Prevent duplicate config loading after login
+if (window.xioskAlreadyLoaded) {
+  // Already initialized once → skip the ready handler
+} else {
+  window.xioskAlreadyLoaded = true;
+
+  // ── original $(document).ready code goes here ──
+  $(document).ready(() => {
+    $.getJSON('/config')
+      .done(xiosk.renderPage)
+      .fail(xiosk.showStatus);
+
+    xiosk.checkStatus();
+    setInterval(xiosk.checkStatus, 5000);
+
+    // ... all the other event bindings remain unchanged ...
+  });
+}
 let xiosk = {
   addNewUrl() {
     let newUrl = $('#new-url').val();
