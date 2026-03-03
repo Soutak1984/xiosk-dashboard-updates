@@ -38,26 +38,18 @@ How to apply these updates on your Raspberry Pi
 
 3. Download the updated files
 
-   curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/index.ts          -o index.ts
-   curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/index.html -o dashboard/index.html
-   curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/script.js  -o dashboard/script.js
+   sudo curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/index.html -o /opt/xiosk/dashboard/index.html
+   sudo curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/script.js -o /opt/xiosk/dashboard/script.js
+   sudo curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/index.ts -o /opt/xiosk/dashboard/index.ts
+   
 
-
-   # Or in one (longer) line:
-   cd /opt/xiosk && \
-   curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/index.ts -o index.ts && \
-   mkdir -p dashboard && cd dashboard && \
-   curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/index.html -o index.html && \
-   curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/script.js -o script.js
-
-
-4. Fix permissions (adjust user/group if needed)
+5. Fix permissions (adjust user/group if needed)
 
    sudo chown -R pi:pi /opt/xiosk
    sudo chmod -R u+rw /opt/xiosk
 
 
-5. Restart the Deno process or services
+6. Restart the Deno process or services
 
    # If running manually:
    # kill the old deno process and restart:
