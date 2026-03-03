@@ -1,43 +1,17 @@
-// ── ADD THESE TWO LINES AT THE VERY BEGINNING OF script.js ──────────────
-//if (localStorage.getItem("xiosk_logged_in") !== "true") {
-  //window.location.reload(); // will be handled by index.html script
-//}
-// ────────────────────────────────────────────────────────────────────────
-// Prevent duplicate config loading after login
-if (window.xioskAlreadyLoaded) {
-  // Already initialized once → skip the ready handler
-} else {
-  window.xioskAlreadyLoaded = true;
-
-  // ── original $(document).ready code goes here ──
-  $(document).ready(() => {
-    $.getJSON('/config')
-      .done(xiosk.renderPage)
-      .fail(xiosk.showStatus);
-
-    xiosk.checkStatus();
-    setInterval(xiosk.checkStatus, 5000);
-
-    // ... all the other event bindings remain unchanged ...
-  });
-}
 let xiosk = {
   addNewUrl() {
     let newUrl = $('#new-url').val();
     if (!newUrl) return;
 
-    // Call appendUrl with just the URL, so it uses default settings (10s, 10 cycles)
     xiosk.appendUrl(newUrl); 
     $('#new-url').val('');
   },
 
-  // MODIFIED: Now accepts duration and cycles as arguments
   appendUrl(url, duration, cycles) {
     let tmpUrl = $('#template-url').contents().clone();
 
     $(tmpUrl).find('a').attr('href', url).html(url);
 
-    // If duration and cycles are provided from config, set them.
     if (duration) {
       $(tmpUrl).find('.duration-input').val(duration);
     }
@@ -48,17 +22,14 @@ let xiosk = {
     $('#urls .list-group').append(tmpUrl);
   },
 
-  // MODIFIED: Now passes the full item data to appendUrl
   renderPage(data) {
     if (data && data.urls) {
       $.each(data.urls, (index, item) => {
-        // Pass all the data (url, duration, cycles) to the updated function
         xiosk.appendUrl(item.url, item.duration, item.cycles);
       });
     }
   },
 
-  // Helper to toggle button loading state
   toggleLoading($btn, isLoading, loadingText = "Processing...") {
     if (isLoading) {
       $btn.data('original-html', $btn.html());
@@ -66,7 +37,7 @@ let xiosk = {
       $btn.html(`<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> ${loadingText}`);
     } else {
       $btn.prop('disabled', false);
-      $btn.html($btn.data('original-html')); // Restore original look
+      $btn.html($btn.data('original-html'));
     }
   },
 
@@ -129,7 +100,6 @@ $(document).ready(() => {
     $(e.target).closest('li.list-group-item').remove();
   });
 
-  // MODIFIED: The #execute handler now saves all settings correctly
   $('#execute').on('click', function(e) {
     const $btn = $(this);
     xiosk.toggleLoading($btn, true, "Applying...");
@@ -137,7 +107,6 @@ $(document).ready(() => {
     let config = {};
     config.urls = [];
     $('li.list-group-item').each((index, item) => {
-      // Now collecting all data: url, duration, and cycles
       const url = $(item).find('a').attr('href');
       const duration = parseInt($(item).find('.duration-input').val()) || 10;
       const cycles = parseInt($(item).find('.cycles-input').val()) ?? 10;
