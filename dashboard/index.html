@@ -44,10 +44,12 @@
                 <button id="execute" type="button" class="btn btn-danger">APPLY <span class="align-text-bottom">⏻</span></button>
               </div>
             </div>
-            <div class="col-12 col-md-auto text-center text-md-end px-0 d-flex gap-2 flex-wrap justify-content-center justify-content-md-end">
-              <button id="btn-change-password" class="btn btn-outline-warning" type="button">Change Password</button>
-              <button id="btn-logout" class="btn btn-outline-danger" type="button">Logout</button>
-              <button id="toggle-kiosk" type="button" class="btn btn-lg w-100 w-md-auto" style="min-width: 100px;">...</button>
+            <div class="col-12 col-md-auto text-center text-md-end px-0">
+              <div class="d-flex flex-wrap justify-content-center justify-content-md-end gap-2 align-items-center">
+                <button id="btn-change-password" class="btn btn-outline-warning" type="button">Change Password</button>
+                <button id="btn-logout" class="btn btn-outline-danger" type="button">Logout</button>
+                <button id="toggle-kiosk" type="button" class="btn btn-lg" style="min-width: 120px;">...</button>
+              </div>
             </div>
           </div>
         </div>
@@ -93,7 +95,7 @@
       </div>
     </div>
 
-    <!-- Templates (unchanged) -->
+    <!-- Templates -->
     <template id="template-url">
       <li class="list-group-item fs-3">
         <span class="drag-handle" draggable="true" title="Drag to reorder">
@@ -137,12 +139,12 @@
     <script src="script.js"></script>
     <script src="ui.js"></script>
 
-    <!-- Login logic (client-side only) -->
+    <!-- Login / Logout / Change Password logic -->
     <script>
       const DEFAULT_PASSWORD = "admin@123";
       const STORAGE_KEY = "xiosk_password";
 
-      // Initialize default password if never set
+      // Set default password if never set
       if (!localStorage.getItem(STORAGE_KEY)) {
         localStorage.setItem(STORAGE_KEY, DEFAULT_PASSWORD);
       }
@@ -158,9 +160,8 @@
           document.getElementById("login-screen").classList.add("d-none");
           document.getElementById("main-app").classList.remove("d-none");
           document.getElementById("login-error").classList.add("d-none");
-          // Trigger original load
-          $.getJSON('/config').done(xiosk.renderPage).fail(xiosk.showStatus);
-          xiosk.checkStatus();
+          // No manual fetch here → let script.js ready handler do it (prevents duplicates)
+          xiosk.checkStatus();  // just update status button immediately
         } else {
           document.getElementById("login-error").textContent = "Incorrect password";
           document.getElementById("login-error").classList.remove("d-none");
@@ -168,7 +169,7 @@
       }
 
       function logout() {
-        if (confirm("Logout? You will need the password to log in again.")) {
+        if (confirm("Logout? You will need the password again.")) {
           localStorage.removeItem("xiosk_logged_in");
           document.getElementById("main-app").classList.add("d-none");
           document.getElementById("login-screen").classList.remove("d-none");
@@ -190,28 +191,25 @@
         }
 
         localStorage.setItem(STORAGE_KEY, newPass);
-        document.getElementById("change-success").textContent = "Password updated! Please log in again.";
+        document.getElementById("change-success").textContent = "Password updated! Logging out...";
         document.getElementById("change-success").classList.remove("d-none");
         document.getElementById("change-error").classList.add("d-none");
 
         setTimeout(() => {
           bootstrap.Modal.getInstance(document.getElementById("changePasswordModal")).hide();
-          logout(); // force re-login with new password
+          logout();
         }, 1800);
       }
 
-      // Auto-show correct screen on load
+      // Show correct screen on page load
       window.addEventListener("DOMContentLoaded", () => {
         if (isLoggedIn()) {
           document.getElementById("login-screen").classList.add("d-none");
           document.getElementById("main-app").classList.remove("d-none");
-          // Load data
-          $.getJSON('/config').done(xiosk.renderPage).fail(xiosk.showStatus);
-          xiosk.checkStatus();
         }
       });
 
-      // Login form
+      // Login form submit
       document.getElementById("login-form").addEventListener("submit", e => {
         e.preventDefault();
         const pass = document.getElementById("password").value.trim();
