@@ -39,24 +39,12 @@ How to apply these updates on your Raspberry Pi
 3. Download the updated files
 
    sudo curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/index.html -o /opt/xiosk/dashboard/index.html
+   
    sudo curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/script.js -o /opt/xiosk/dashboard/script.js
-   sudo curl -L https://raw.githubusercontent.com/Soutak1984/xiosk-dashboard-updates/main/dashboard/index.ts -o /opt/xiosk/dashboard/index.ts
+   
+   sudo reboot
    
 
-5. Fix permissions (adjust user/group if needed)
-
-   sudo chown -R pi:pi /opt/xiosk
-   sudo chmod -R u+rw /opt/xiosk
-
-
-6. Restart the Deno process or services
-
-   # If running manually:
-   # kill the old deno process and restart:
-   # deno run --allow-net --allow-read --allow-write --allow-run --allow-env index.ts
-
-   # Or if using systemd:
-   # sudo systemctl restart xiosk-runner.service xiosk-switcher.service
 
 
 First login
