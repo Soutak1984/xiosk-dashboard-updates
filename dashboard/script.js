@@ -1,7 +1,7 @@
 // ── ADD THESE TWO LINES AT THE VERY BEGINNING OF script.js ──────────────
-if (localStorage.getItem("xiosk_logged_in") !== "true") {
-  window.location.reload(); // will be handled by index.html script
-}
+//if (localStorage.getItem("xiosk_logged_in") !== "true") {
+  //window.location.reload(); // will be handled by index.html script
+//}
 // ────────────────────────────────────────────────────────────────────────
 let xiosk = {
   addNewUrl() {
