@@ -1,0 +1,174 @@
+const CONFIG_FILE = "./config.json";
+
+async function readConfig(): Promise<string> {
+  try {
+    return await Deno.readTextFile(CONFIG_FILE);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      // Return sample config if config.json doesn't exist
+      return await Deno.readTextFile("./config.json.sample");
+    }
+    throw error;
+  }
+}
+
+async function writeConfig(configData: string): Promise<void> {
+  await Deno.writeTextFile(CONFIG_FILE, configData);
+}
+
+async function getServiceStatus(): Promise<boolean> {
+  if(Deno.env.get("XIOSK_TEST_MODE") === "true") return true;
+
+  try {
+    const command = new Deno.Command("systemctl", {
+      args: ["is-active", "xiosk-runner.service"]
+    });
+
+    const { code } = await command.output();
+    return code === 0;
+  } catch(error) {
+    console.error("Status check failed ", error);
+    return false;
+  }
+}
+
+async function invokeService(action: "start" | "stop" | "restart"): Promise<void> {
+  const services = ["xiosk-runner.service", "xiosk-switcher.service"];
+
+  if (Deno.env.get("XIOSK_TEST_MODE") === "true") {
+    console.log(`Test mode: Would ${action.toUpperCase()} services: ${services.join(", ")}`);
+    return;
+  }
+
+  try {
+    const command = new Deno.Command("systemctl", {
+      args: [action, ...services]
+    });
+
+    const { code, stderr } = await command.output();
+
+    if (code !== 0) {
+      throw new Error(`systemctl ${action} failed: ${new TextDecoder().decode(stderr)}`);
+    }
+
+    console.log(`Successfully executed '${action}' on services.`);
+  } catch (error) {
+    console.error(`Service command '${action}' failed: `, error);
+    throw error;
+  }
+}
+
+async function serveStaticFile(pathname: string): Promise<Response> {
+  let filePath: string;
+  
+  if (pathname === "/" || pathname === "/index.html") {
+    filePath = "./dashboard/index.html";
+  } else {
+    // Remove leading slash and serve from web directory
+    filePath = `./dashboard${pathname}`;
+  }
+  
+  try {
+    const file = await Deno.readFile(filePath);
+    
+    // Determine content type
+    let contentType = "text/plain";
+    if (filePath.endsWith(".html")) {
+      contentType = "text/html";
+    } else if (filePath.endsWith(".js")) {
+      contentType = "application/javascript";
+    } else if (filePath.endsWith(".css")) {
+      contentType = "text/css";
+    } else if (filePath.endsWith(".json")) {
+      contentType = "application/json";
+    }
+    
+    return new Response(file, {
+      headers: { "Content-Type": contentType },
+    });
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return new Response("Not Found", { status: 404 });
+    }
+    console.error("Error serving file:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
+}
+
+async function handler(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  
+  // Handle API endpoints
+  if (url.pathname === "/config") {
+    if (req.method === "GET") {
+      try {
+        const config = await readConfig();
+        return new Response(config, {
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Error reading config:", error);
+        return new Response("Could not read config.", { status: 500 });
+      }
+    }
+    
+    if (req.method === "POST") {
+      try {
+        const configData = await req.text();
+        
+        // Validate JSON
+        JSON.parse(configData);
+        
+        await writeConfig(JSON.stringify(JSON.parse(configData), null, "  "));
+        
+        // Restart services
+        try {
+          await invokeService("restart");
+          return new Response("New config applied; restarting services for changes to take effect...", { status: 200 });
+        } catch (restartError) {
+          console.error("Restart error:", restartError);
+          return new Response("Could not restart services to apply config. Retry manually.", { status: 500 });
+        }
+      } catch (error) {
+        console.error("Error saving config:", error);
+        return new Response("Could not save config.", { status: 500 });
+      }
+    }
+  }
+
+  if (url.pathname === "/services/status" && req.method === "GET") {
+    const isRunning = await getServiceStatus();
+    return new Response(JSON.stringify({ running: isRunning }), {
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  if (url.pathname === "/services/start" && req.method === "POST") {
+    try {
+      await invokeService("start");
+      return new Response("Kiosk started.", { status: 200 });
+    } catch (error) {
+      console.error("Error starting kiosk:", error);
+      return new Response("Could not start kiosk.", { status: 500 });
+    }
+  }
+
+  if (url.pathname === "/services/stop" && req.method === "POST") {
+    try {
+      await invokeService("stop");
+      return new Response("Kiosk stopped successfully.", { status: 200 });
+    } catch (error) {
+      console.error("Error stopping kiosk:", error);
+      return new Response("Could not stop kiosk.", { status: 500 });
+    }
+  }
+  
+  // Handle static files
+  return await serveStaticFile(url.pathname);
+}
+
+const port = parseInt(Deno.env.get("PORT") || "80");
+console.log(`XiOSK Deno server starting on port ${port}...`);
+
+Deno.serve({ port }, handler);
+
